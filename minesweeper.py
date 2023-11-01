@@ -105,34 +105,42 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
+        # we can assume two things without an algo count == 0 means no mines and count == len(cells) means all mines
 
-        # since i remove mines and
-        raise NotImplementedError
+        if self.count == 0:
+            return None
+        elif len(self.cells) == self.count:
+            return self.cells
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        for i in range(len(self.cells)):
-            # check to see if the cell is safe is so we can remove it and update count as well???
-            pass
-        raise NotImplementedError
+        # using only self.cells and self.count, return a set of all the cells that are known to be safe
+        # if the count is 0, then all cells are safe
+        # if the count is equal to the length of the cells, then all cells are mines
+
+        if len(self.cells) == self.count:
+            return None
+        elif self.count == 0:
+            return self.cells
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        # remove from cells and decrease count? or add to cells and increase count??
-        self.cells.discard(cell)
-        self.count -= 1
+        # Since we are modifying count we will need to check if the cell is in the set first
+        if cell in self.cells:
+            self.cells.discard(cell)
+            self.count -= 1
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        # will remove the cell if it is there and wont throw an exception if it is not - do not touch count because we are only removing a safe cell (do we even remove it at all? or represent it as safe while still having it in cell?)
+        # discard will remove the cell if it is there and do nothing otherwise
         self.cells.discard(cell)
 
 
@@ -192,7 +200,9 @@ class MinesweeperAI():
         """
         self.moves_made.add(cell)
         self.safes.add(cell)
-        self.knowledge.append(Sentence(cell, count))
+        self.mark_safe(cell)
+        # get all the neighbors of cell, as long as their indexes are within the bounds of height and width add those neighrbors to a set of tuples then create a sentence with that set and the count
+        neighbors = set()
 
     def make_safe_move(self):
         """
@@ -203,7 +213,18 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        # check to see if there are any cells that are marked in safes that are not marked in moves made
+        for cell in self.safes:
+            if cell not in self.moves_made:
+                return cell
+        # loop over knowledge and see if any sentances have a count of 0 if so we can return a cell from that sentence that hasnt been moved to, updating the sentence would be updating the kb tho so return and dont update???
+        for sentence in self.knowledge:
+            if sentence.count == 0:
+                for cell in sentence.cells:
+                    if cell not in self.moves_made:
+                        return cell
+
+        return None
 
     def make_random_move(self):
         """
