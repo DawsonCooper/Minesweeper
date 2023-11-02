@@ -183,6 +183,66 @@ class MinesweeperAI():
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
 
+    def check_neighbors(self, cell):
+        """
+        takes in a safe cell and returns a set of all the neighbors of that cell
+        checks edge cases for index errors or -1 values that would cause python to access end of arr
+        used to create a sentence for the knowledge base
+        """
+        neighbors = set()
+        x = cell[0]
+        y = cell[1]
+
+        try:
+            tempX = x - 1
+            tempY = y - 1
+            neighbors.add((tempX, tempY))
+        except IndexError or x - 1 < 0 or y - 1 < 0:
+            pass
+        try:
+            tempX = x
+            tempY = y - 1
+            neighbors.add((tempX, tempY))
+        except IndexError or y - 1 < 0:
+            pass
+        try:
+            tempX = x + 1
+            tempY = y - 1
+            neighbors.add((tempX, tempY))
+        except IndexError or y - 1 < 0:
+            pass
+        try:
+            tempX = x - 1
+            tempY = y
+            neighbors.add((tempX, tempY))
+        except IndexError or x - 1 < 0:
+            pass
+        try:
+            tempX = x + 1
+            tempY = y
+            neighbors.add((tempX, tempY))
+        except IndexError:
+            pass
+        try:
+            tempX = x - 1
+            tempY = y + 1
+            neighbors.add((tempX, tempY))
+        except IndexError or x - 1 < 0:
+            pass
+        try:
+            tempX = x
+            tempY = y + 1
+            neighbors.add((tempX, tempY))
+        except IndexError:
+            pass
+        try:
+            tempX = x + 1
+            tempY = y + 1
+            neighbors.add((tempX, tempY))
+        except IndexError:
+            pass
+        return neighbors
+
     def add_knowledge(self, cell, count):
         """
         Called when the Minesweeper board tells us, for a given
@@ -198,11 +258,10 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        self.moves_made.add(cell)
-        self.safes.add(cell)
-        self.mark_safe(cell)
-        # get all the neighbors of cell, as long as their indexes are within the bounds of height and width add those neighrbors to a set of tuples then create a sentence with that set and the count
-        neighbors = set()
+        self.moves_made.add(cell)  # marks as a move made
+        self.mark_safe(cell)  # marks the cell as safe
+        # adds neighbors and count to the KB
+        self.knowledge.append(Sentence(self.check_neighbors(cell), count))
 
     def make_safe_move(self):
         """
