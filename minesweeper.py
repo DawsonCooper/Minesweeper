@@ -129,7 +129,7 @@ class Sentence():
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
-        """
+        """        
         # Since we are modifying count we will need to check if the cell is in the set first
         if cell in self.cells:
             self.cells.discard(cell)
@@ -140,7 +140,7 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        # discard will remove the cell if it is there and do nothing otherwise
+        # since we only need to get rid of the cell we can use discard to remove it if its not there no worries it wont throw an error
         self.cells.discard(cell)
 
 
@@ -188,6 +188,7 @@ class MinesweeperAI():
         takes in a safe cell and returns a set of all the neighbors of that cell
         checks edge cases for index errors or -1 values that would cause python to access end of arr
         used to create a sentence for the knowledge base
+        does not add known safes, does add known mines???
         """
         neighbors = set()
         x = cell[0]
@@ -196,49 +197,58 @@ class MinesweeperAI():
         try:
             tempX = x - 1
             tempY = y - 1
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
+            
         except IndexError or x - 1 < 0 or y - 1 < 0:
             pass
         try:
             tempX = x
             tempY = y - 1
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError or y - 1 < 0:
             pass
         try:
             tempX = x + 1
             tempY = y - 1
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError or y - 1 < 0:
             pass
         try:
             tempX = x - 1
             tempY = y
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError or x - 1 < 0:
             pass
         try:
             tempX = x + 1
             tempY = y
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError:
             pass
         try:
             tempX = x - 1
             tempY = y + 1
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError or x - 1 < 0:
             pass
         try:
             tempX = x
             tempY = y + 1
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError:
             pass
         try:
             tempX = x + 1
             tempY = y + 1
-            neighbors.add((tempX, tempY))
+            if (tempX, tempY) not in self.safes:
+                neighbors.add((tempX, tempY))
         except IndexError:
             pass
         return neighbors
@@ -262,6 +272,13 @@ class MinesweeperAI():
         self.mark_safe(cell)  # marks the cell as safe
         # adds neighbors and count to the KB
         self.knowledge.append(Sentence(self.check_neighbors(cell), count))
+        for sen in self.knowledge:
+            sen.mark_safe(cell) # will remove cell from any sentences that contain it since we know it is safe
+            self.mines.add(sen.known_mines()) # this will add any inferred mines to our mines set
+            self.safes.add(sen.known_safes()) # this will add any inferred safes to our safes set
+            for mine in self.mines:
+                sen.mark_mine(mine) # removes any known mines from our sentences
+            
 
     def make_safe_move(self):
         """
