@@ -132,7 +132,7 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """     
-        print('In mark mine'))   
+        print('In mark mine')   
         # Since we are modifying count we will need to check if the cell is in the set first
         if cell in self.cells:
             self.cells.discard(cell)
