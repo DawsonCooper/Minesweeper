@@ -107,6 +107,7 @@ class Sentence():
         """
         # we can assume two things without an algo count == 0 means no mines and count == len(cells) means all mines
 
+        print('In known mines')
         if self.count == 0:
             return None
         elif len(self.cells) == self.count:
@@ -116,6 +117,7 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be safe.
         """
+        print('In known safes')
         # using only self.cells and self.count, return a set of all the cells that are known to be safe
         # if the count is 0, then all cells are safe
         # if the count is equal to the length of the cells, then all cells are mines
@@ -129,7 +131,8 @@ class Sentence():
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
-        """        
+        """     
+        print('In mark mine'))   
         # Since we are modifying count we will need to check if the cell is in the set first
         if cell in self.cells:
             self.cells.discard(cell)
@@ -140,6 +143,7 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
+        print('In mark safe')
         # since we only need to get rid of the cell we can use discard to remove it if its not there no worries it wont throw an error
         self.cells.discard(cell)
 
@@ -193,66 +197,26 @@ class MinesweeperAI():
         neighbors = set()
         x = cell[0]
         y = cell[1]
-
-        try:
-            tempX = x - 1
-            tempY = y - 1
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-            
-        except IndexError or x - 1 < 0 or y - 1 < 0:
-            pass
-        try:
-            tempX = x
-            tempY = y - 1
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError or y - 1 < 0:
-            pass
-        try:
-            tempX = x + 1
-            tempY = y - 1
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError or y - 1 < 0 :
-            pass
-        try:
-            tempX = x - 1
-            tempY = y
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError or x - 1 < 0:
-            pass
-        try:
-            tempX = x + 1
-            tempY = y
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError:
-            pass
-        try:
-            tempX = x - 1
-            tempY = y + 1
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError or x - 1 < 0:
-            pass
-        try:
-            tempX = x
-            tempY = y + 1
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError:
-            pass
-        try:
-            tempX = x + 1
-            tempY = y + 1
-            if (tempX, tempY) not in self.safes:
-                neighbors.add((tempX, tempY))
-        except IndexError:
-            pass
+        
+        # get all neighbors regardless if they are in bounds or not
+        topLeft = (x - 1, y - 1)
+        top = (x - 1, y)
+        topRight = (x - 1, y + 1)
+        rightCenter = (x, y + 1)
+        bottomRight = (x + 1, y + 1)
+        bottom = (x + 1, y)
+        bottomLeft = (x + 1, y - 1)
+        leftCenter = (x, y - 1)
+        
+        neighborArr = [topLeft, top, topRight, rightCenter, bottomRight, bottom, bottomLeft, leftCenter]
+        
+        # loop over the list of neighbors and check if they are in bounds if they are we add them to our set
+        for neighbor in neighborArr:
+            if neighbor[0] in range(self.height) and neighbor[1] in range(self.width):
+                neighbors.add(neighbor)
         return neighbors
 
+            
     def add_knowledge(self, cell, count):
         """
         Called when the Minesweeper board tells us, for a given
@@ -268,13 +232,13 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        self.moves_made.add(cell)  # marks as a move made
+        print('In add knowledge')
+        self.moves_made.add(cell)  # Step 1
         self.mark_safe(cell)  # marks the cell as safe
-        # adds neighbors and count to the KB
         self.knowledge.append(Sentence(self.check_neighbors(cell), count))
         for sen in self.knowledge:
             sen.mark_safe(cell) # will remove cell from any sentences that contain it since we know it is safe
-            
+            print('In KB loop')
             try:
                 for mine in sen.known_mines():
                     self.mines.add(mine) # this will add any inferred mines to our mines set
@@ -292,9 +256,12 @@ class MinesweeperAI():
                     sen.mark_mine(mine) # removes any known mines from our sentences
             except TypeError:
                 pass
+            
+            
         # loop over knowledge and see if any of the sentences are subsets of each other
         KBcopy = copy.deepcopy(self.knowledge)
         while len(KBcopy) != 0:
+            print('In subset loop')
             sen1 = KBcopy.pop()
             for sen2 in KBcopy:
                 if sen1.cells.issubset(sen2.cells):
