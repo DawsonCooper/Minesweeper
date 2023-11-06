@@ -213,7 +213,8 @@ class MinesweeperAI():
         # loop over the list of neighbors and check if they are in bounds if they are we add them to our set
         for neighbor in neighborArr:
             if neighbor[0] in range(self.height) and neighbor[1] in range(self.width):
-                neighbors.add(neighbor)
+                if neighbor not in self.safes:
+                    neighbors.add(neighbor)
         return neighbors
 
             
@@ -236,18 +237,23 @@ class MinesweeperAI():
         self.moves_made.add(cell)  # Step 1
         self.mark_safe(cell)  # marks the cell as safe
         self.knowledge.append(Sentence(self.check_neighbors(cell), count))
-        for sen in self.knowledge:
+        
+        
+        for i in range(len(self.knowledge)):
+            sen = self.knowledge[i]
             sen.mark_safe(cell) # will remove cell from any sentences that contain it since we know it is safe
             print('In KB loop')
             try:
                 for mine in sen.known_mines():
                     self.mines.add(mine) # this will add any inferred mines to our mines set
+                    
             except TypeError:
                 pass # if there are no known mines then it will throw a type error so we can just pass
             
             try:
                 for safe in sen.known_safes():
                     self.safes.add(safe) # this will add any inferred safes to our safes set
+                
             except TypeError:
                 pass # if there are no known safes or mines then it will throw a type error so we can just pass
             
@@ -257,14 +263,43 @@ class MinesweeperAI():
             except TypeError:
                 pass
             
+        
+        # perge updated knowledge base of any empty sentences and safe/mine sentences
+        
+        for i in range(len(self.knowledge)):
+        
+            sen = self.knowledge[i]
+            print('In perge loop')
+            print(len(self.knowledge))
+            print(sen)
+            print('-----------------')
             
+            if sen.count == 0:
+                del self.knowledge[i]
+                break
+            if len(sen.cells) == sen.count:
+                del self.knowledge[i]
+                break
+            if not bool(vars(sen)):
+                del self.knowledge[i]
+                break
+
         # loop over knowledge and see if any of the sentences are subsets of each other
+        
+
+        
         KBcopy = copy.deepcopy(self.knowledge)
-        while len(KBcopy) != 0:
+        while len(KBcopy) > 0:
             print('In subset loop')
             sen1 = KBcopy.pop()
             for sen2 in KBcopy:
-                if sen1.cells.issubset(sen2.cells):
+                print(len(KBcopy))
+                print(sen1)
+                print('-----------------')
+                if sen1.cells == set() or sen1.count == 0:
+                    
+                    break
+                if sen1.cells.issubset(sen2.cells) and sen1.cells != set():
                     newCells = sen2.cells - sen1.cells
                     newCount = sen2.count - sen1.count
                     self.knowledge.append(Sentence(newCells, newCount))
