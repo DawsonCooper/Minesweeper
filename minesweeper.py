@@ -107,7 +107,7 @@ class Sentence():
         """
         # we can assume two things without an algo count == 0 means no mines and count == len(cells) means all mines
 
-        print('In known mines')
+        #print('In known mines')
         if self.count == 0:
             return None
         elif len(self.cells) == self.count:
@@ -117,7 +117,7 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        print('In known safes')
+        #print('In known safes')
         # using only self.cells and self.count, return a set of all the cells that are known to be safe
         # if the count is 0, then all cells are safe
         # if the count is equal to the length of the cells, then all cells are mines
@@ -132,7 +132,7 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """     
-        print('In mark mine')   
+        #print('In mark mine')   
         # Since we are modifying count we will need to check if the cell is in the set first
         if cell in self.cells:
             self.cells.discard(cell)
@@ -143,7 +143,7 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        print('In mark safe')
+        #print('In mark safe')
         # since we only need to get rid of the cell we can use discard to remove it if its not there no worries it wont throw an error
         self.cells.discard(cell)
 
@@ -187,7 +187,7 @@ class MinesweeperAI():
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
 
-    def check_neighbors(self, cell):
+    def check_neighbors(self, cell, count):
         """
         takes in a safe cell and returns a set of all the neighbors of that cell
         checks edge cases for index errors or -1 values that would cause python to access end of arr
@@ -213,11 +213,13 @@ class MinesweeperAI():
         # loop over the list of neighbors and check if they are in bounds if they are we add them to our set
         for neighbor in neighborArr:
             if neighbor[0] in range(self.height) and neighbor[1] in range(self.width):
-                if neighbor not in self.safes:
+                if neighbor not in self.safes and neighbor not in self.mines:
                     neighbors.add(neighbor)
-        return neighbors
+                if neighbor in self.mines:
+                    count -= 1
+        return {'cells': neighbors, 'count': count}
 
-            
+ 
     def add_knowledge(self, cell, count):
         """
         Called when the Minesweeper board tells us, for a given
@@ -236,13 +238,17 @@ class MinesweeperAI():
         print('In add knowledge')
         self.moves_made.add(cell)  # Step 1
         self.mark_safe(cell)  # marks the cell as safe
-        self.knowledge.append(Sentence(self.check_neighbors(cell), count))
+        neighborResources = self.check_neighbors(cell, count)
+        if len(neighborResources['cells']) != 0:
+            print(neighborResources)
+            self.knowledge.append(Sentence(neighborResources['cells'], neighborResources['count']))
+        
+        print('-----------------------')
         
         
         for i in range(len(self.knowledge)):
             sen = self.knowledge[i]
-            sen.mark_safe(cell) # will remove cell from any sentences that contain it since we know it is safe
-            print('In KB loop')
+            sen.mark_safe(cell) # remove cell from all sen in KB
             try:
                 for mine in sen.known_mines():
                     self.mines.add(mine) # this will add any inferred mines to our mines set
@@ -275,9 +281,12 @@ class MinesweeperAI():
             print('-----------------')
             
             if sen.count == 0:
+                for cell in sen.cells:
+                    self.safes.add(cell)
                 del self.knowledge[i]
                 break
             if len(sen.cells) == sen.count:
+                self.mines.add(cell)
                 del self.knowledge[i]
                 break
             if not bool(vars(sen)):
@@ -292,18 +301,31 @@ class MinesweeperAI():
         while len(KBcopy) > 0:
             print('In subset loop')
             sen1 = KBcopy.pop()
-            for sen2 in KBcopy:
-                print(len(KBcopy))
-                print(sen1)
-                print('-----------------')
-                if sen1.cells == set() or sen1.count == 0:
-                    
-                    break
-                if sen1.cells.issubset(sen2.cells) and sen1.cells != set():
-                    newCells = sen2.cells - sen1.cells
-                    newCount = sen2.count - sen1.count
-                    self.knowledge.append(Sentence(newCells, newCount))
+            print(len(KBcopy))
+            print(sen1)
+            print('-----------------')
+            if len(sen1.cells) == 0 or sen1.count == 0:
+                pass
+            else:
+                for sen2 in KBcopy:
+                    if sen1.cells.issubset(sen2.cells):
+                        newCells = sen2.cells - sen1.cells
+                        newCount = sen2.count - sen1.count
+                        if len(newCells) != 0:
+                            newSen = Sentence(newCells, newCount)
+                            if newSen not in self.knowledge: 
+                                self.knowledge.append(newSen)
+                    elif sen2.cells.issubset(sen1.cells):
+                        newCells = sen1.cells - sen2.cells
+                        newCount = sen1.count - sen2.count
+                        if len(newCells) != 0:
+                            newSen = Sentence(newCells, newCount)
+                            if newSen not in self.knowledge: 
+                                self.knowledge.append(newSen)
+                    else: 
+                        pass        
             
+
 
     def make_safe_move(self):
         """
@@ -320,6 +342,7 @@ class MinesweeperAI():
                 return cell
         # loop over knowledge and see if any sentances have a count of 0 if so we can return a cell from that sentence that hasnt been moved to, updating the sentence would be updating the kb tho so return and dont update???
         for sentence in self.knowledge:
+            print(sentence)
             if sentence.count == 0:
                 for cell in sentence.cells:
                     if cell not in self.moves_made:
@@ -338,5 +361,7 @@ class MinesweeperAI():
         while True:
             i = random.randint(0, self.height - 1)
             j = random.randint(0, self.width - 1)
-            if (i, j) not in self.moves_made:
+            if (i, j) not in self.moves_made and (i, j) not in self.mines:
                 return (i, j)
+            else:
+                return None
